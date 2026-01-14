@@ -1,0 +1,757 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Metabolica - Cronômetro de Treino Inteligente</title>
+    <!-- PWA Meta Tags -->
+    <meta name="theme-color" content="#00ff88">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <meta name="apple-mobile-web-app-title" content="Metabolica">
+    <link rel="apple-touch-icon" href="icon.png">
+    <link rel="manifest" href="manifest.json">
+
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;600;800&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --primary: #00ff88;
+            --secondary: #00d4ff;
+            --accent: #ff3e3e;
+            --bg: #0a0a0c;
+            --card-bg: rgba(20, 20, 25, 0.8);
+            --text: #ffffff;
+            --text-dim: #a0a0a8;
+            --glass: rgba(255, 255, 255, 0.05);
+            --glass-border: rgba(255, 255, 255, 0.1);
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: 'Outfit', sans-serif;
+        }
+
+        body {
+            background: var(--bg);
+            background-image: linear-gradient(rgba(0, 0, 0, 0.7), rgba(0, 0, 0, 0.7)), url('bg.png');
+            background-size: cover;
+            background-position: center;
+            background-attachment: fixed;
+            color: var(--text);
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            overflow-x: hidden;
+        }
+
+        header {
+            width: 100%;
+            padding: 2rem;
+            text-align: center;
+            background: linear-gradient(to bottom, rgba(0, 0, 0, 0.8), transparent);
+            -webkit-backdrop-filter: blur(10px);
+            backdrop-filter: blur(10px);
+            position: sticky;
+            top: 0;
+            z-index: 100;
+        }
+
+        h1 {
+            font-weight: 800;
+            font-size: 2.5rem;
+            letter-spacing: -1px;
+            background: linear-gradient(to right, var(--primary), var(--secondary));
+            -webkit-background-clip: text;
+            background-clip: text;
+            -webkit-text-fill-color: transparent;
+            text-transform: uppercase;
+        }
+
+        .container {
+            width: 100%;
+            max-width: 800px;
+            padding: 2rem;
+            flex-grow: 1;
+        }
+
+        /* Day Selector */
+        .day-scroller {
+            display: flex;
+            gap: 1rem;
+            overflow-x: auto;
+            padding: 1rem 0;
+            margin-bottom: 2rem;
+            scrollbar-width: none;
+        }
+
+        .day-scroller::-webkit-scrollbar {
+            display: none;
+        }
+
+        .day-card {
+            background: var(--glass);
+            border: 1px solid var(--glass-border);
+            padding: 1.5rem;
+            border-radius: 1.5rem;
+            min-width: 160px;
+            cursor: pointer;
+            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+            text-align: center;
+            -webkit-backdrop-filter: blur(5px);
+            backdrop-filter: blur(5px);
+        }
+
+        .day-card.active {
+            background: var(--primary);
+            border-color: var(--primary);
+            transform: translateY(-5px);
+            box-shadow: 0 10px 30px rgba(0, 255, 136, 0.3);
+        }
+
+        .day-card.active span,
+        .day-card.active h3 {
+            color: #000;
+        }
+
+        .day-card span {
+            font-size: 0.8rem;
+            color: var(--text-dim);
+            text-transform: uppercase;
+            font-weight: 600;
+        }
+
+        .day-card h3 {
+            font-size: 1.2rem;
+            margin-top: 0.5rem;
+        }
+
+        /* Workout Display */
+        .workout-view {
+            background: var(--card-bg);
+            border-radius: 2rem;
+            padding: 3rem;
+            border: 1px solid var(--glass-border);
+            -webkit-backdrop-filter: blur(20px);
+            backdrop-filter: blur(20px);
+            box-shadow: 0 20px 50px rgba(0, 0, 0, 0.5);
+            text-align: center;
+            display: none;
+            animation: fadeIn 0.5s ease-out;
+        }
+
+        @keyframes fadeIn {
+            from {
+                opacity: 0;
+                transform: translateY(20px);
+            }
+
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        .status-badge {
+            display: inline-block;
+            padding: 0.5rem 1.5rem;
+            border-radius: 2rem;
+            font-weight: 700;
+            text-transform: uppercase;
+            font-size: 0.9rem;
+            margin-bottom: 1.5rem;
+            letter-spacing: 1px;
+        }
+
+        .status-work {
+            background: rgba(0, 255, 136, 0.2);
+            color: var(--primary);
+            border: 1px solid var(--primary);
+        }
+
+        .status-rest {
+            background: rgba(255, 62, 62, 0.2);
+            color: var(--accent);
+            border: 1px solid var(--accent);
+        }
+
+        .status-prepare {
+            background: rgba(0, 212, 255, 0.2);
+            color: var(--secondary);
+            border: 1px solid var(--secondary);
+        }
+
+        .current-exercise {
+            font-size: 2rem;
+            font-weight: 700;
+            margin-bottom: 0.5rem;
+        }
+
+        .next-exercise {
+            font-size: 1rem;
+            color: var(--text-dim);
+            margin-bottom: 2rem;
+        }
+
+        .timer-display {
+            font-size: 8rem;
+            font-weight: 800;
+            line-height: 1;
+            margin: 2rem 0;
+            font-variant-numeric: tabular-nums;
+            text-shadow: 0 0 30px rgba(255, 255, 255, 0.1);
+        }
+
+        .progress-container {
+            width: 100%;
+            height: 8px;
+            background: var(--glass);
+            border-radius: 4px;
+            margin: 2rem 0;
+            overflow: hidden;
+        }
+
+        .progress-bar {
+            height: 100%;
+            background: linear-gradient(to right, var(--primary), var(--secondary));
+            width: 0%;
+            transition: width 0.3s ease;
+        }
+
+        .controls {
+            display: flex;
+            gap: 1.5rem;
+            justify-content: center;
+            margin-top: 2rem;
+        }
+
+        button.btn {
+            border: none;
+            padding: 1.2rem 2.5rem;
+            border-radius: 1.2rem;
+            font-size: 1.1rem;
+            font-weight: 700;
+            cursor: pointer;
+            transition: all 0.2s;
+            display: flex;
+            align-items: center;
+            gap: 0.8rem;
+        }
+
+        .btn-start {
+            background: var(--primary);
+            color: #000;
+        }
+
+        .btn-pause {
+            background: var(--glass);
+            color: #fff;
+            border: 1px solid var(--glass-border);
+        }
+
+        .btn-reset {
+            background: transparent;
+            color: var(--text-dim);
+        }
+
+        .btn-skip {
+            border-color: var(--secondary);
+            color: var(--secondary);
+            background: transparent;
+            border: 1px solid var(--glass-border);
+        }
+
+        button.btn:hover {
+            transform: scale(1.05);
+            filter: brightness(1.1);
+        }
+
+        button.btn:active {
+            transform: scale(0.95);
+        }
+
+        /* Stats bar */
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 1rem;
+            margin-top: 3rem;
+            padding-top: 2rem;
+            border-top: 1px solid var(--glass-border);
+        }
+
+        .stat-item span {
+            display: block;
+            color: var(--text-dim);
+            font-size: 0.8rem;
+            text-transform: uppercase;
+        }
+
+        .stat-item strong {
+            font-size: 1.4rem;
+            color: var(--text);
+        }
+
+        /* Landing page */
+        .landing {
+            text-align: center;
+            margin-top: 2rem;
+        }
+
+        .intro-text {
+            color: var(--text-dim);
+            font-size: 1.1rem;
+            margin-bottom: 3rem;
+            max-width: 500px;
+            margin-left: auto;
+            margin-right: auto;
+        }
+
+        .mt-small {
+            margin-top: 0.5rem;
+        }
+
+        .hidden {
+            display: none !important;
+        }
+
+        /* Responsive */
+        @media (max-width: 600px) {
+            .timer-display {
+                font-size: 5rem;
+            }
+
+            .workout-view {
+                padding: 1.5rem;
+            }
+
+            .controls {
+                flex-direction: column;
+            }
+
+            h1 {
+                font-size: 1.8rem;
+            }
+        }
+
+        /* Wave Decoration */
+        .wave {
+            position: fixed;
+            bottom: 0;
+            width: 100%;
+            height: 100px;
+            background: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 1440 320'%3E%3Cpath fill='%2300ff88' fill-opacity='0.05' d='M0,192L48,197.3C96,203,192,213,288,229.3C384,245,480,267,576,250.7C672,235,768,181,864,181.3C960,181,1056,235,1152,234.7C1248,235,1344,181,1392,154.7L1440,128L1440,320L1392,320C1344,320,1248,320,1152,320C1056,320,960,320,864,320C768,320,672,320,576,320C480,320,384,320,288,320C192,320,96,320,48,320L0,320Z'%3E%3C/path%3E%3C/svg%3E");
+            background-size: cover;
+            z-index: -1;
+        }
+    </style>
+</head>
+
+<body>
+
+    <header>
+        <h1>Metabolica</h1>
+        <p class="mt-small" style="color: var(--text-dim); font-weight: 300;">Engenharia de Longevidade</p>
+    </header>
+
+    <div class="container">
+
+        <div class="landing" id="landing-screen">
+            <p class="intro-text">
+                Treino inteligente para o homem moderno de 54 anos. <br>
+                Foco hormonal, proteção lombar e máxima densidade.
+            </p>
+        </div>
+
+        <div class="day-scroller">
+            <div class="day-card" id="day-1" onclick="selectDay(1)">
+                <span>Segunda</span>
+                <h3>Inferior + Core</h3>
+            </div>
+            <div class="day-card" id="day-2" onclick="selectDay(2)">
+                <span>Terça</span>
+                <h3>Superior</h3>
+            </div>
+            <div class="day-card" id="day-3" onclick="selectDay(3)">
+                <span>Quarta</span>
+                <h3>Regenerativo</h3>
+            </div>
+            <div class="day-card" id="day-4" onclick="selectDay(4)">
+                <span>Quinta</span>
+                <h3>Total EMOM</h3>
+            </div>
+            <div class="day-card" id="day-5" onclick="selectDay(5)">
+                <span>Sexta</span>
+                <h3>Força + Met.</h3>
+            </div>
+        </div>
+
+        <div class="workout-view" id="workout-view">
+            <div id="status-badge" class="status-badge status-prepare">Prepare-se</div>
+
+            <div class="current-exercise" id="current-ex-name">Selecionar Treino</div>
+            <div class="next-exercise" id="next-ex-name">...</div>
+
+            <div class="timer-display" id="timer-text">00:00</div>
+
+            <div class="progress-container">
+                <div class="progress-bar" id="progress-bar"></div>
+            </div>
+
+            <div class="controls">
+                <button class="btn btn-pause hidden" id="btn-pause" onclick="togglePause()">
+                    <span id="pause-icon">⏸</span> <span id="pause-text">Pausar</span>
+                </button>
+                <button class="btn btn-start" id="btn-start" onclick="startWorkout()">
+                    ▶ Iniciar Treino
+                </button>
+                <button class="btn btn-skip" id="btn-skip" onclick="nextStep()">
+                    ⏭ Pular
+                </button>
+                <button class="btn btn-reset" onclick="resetWorkout()">Reiniciar</button>
+            </div>
+
+            <div class="stats-grid">
+                <div class="stat-item">
+                    <span>Volta</span>
+                    <strong id="stat-round">0 / 0</strong>
+                </div>
+                <div class="stat-item">
+                    <span>Exercício</span>
+                    <strong id="stat-ex">0 / 0</strong>
+                </div>
+                <div class="stat-item">
+                    <span>Restante</span>
+                    <strong id="stat-total-time">--:--</strong>
+                </div>
+            </div>
+        </div>
+
+    </div>
+
+    <div class="wave"></div>
+
+    <script>
+        // --- Workout Logic ---
+        const WORKOUTS = {
+            1: {
+                name: "Inferior + Core",
+                type: "circuit",
+                rounds: 4,
+                workTime: 40,
+                restTime: 20,
+                roundRest: 90,
+                exercises: [
+                    "Agachamento Goblet",
+                    "Avanço Alternado",
+                    "Elevação de Quadril",
+                    "Prancha Frontal",
+                    "Polichinelo ou Marcha"
+                ]
+            },
+            2: {
+                name: "Superior (Costas)",
+                type: "circuit",
+                rounds: 4,
+                workTime: 40,
+                restTime: 20,
+                roundRest: 90,
+                exercises: [
+                    "Flexão de Braço",
+                    "Remada Curvada",
+                    "Desenvolvimento de Ombros",
+                    "Prancha Lateral (30s cada)",
+                    "Mountain Climber Controlado"
+                ]
+            },
+            3: {
+                name: "Regenerativo Ativo",
+                type: "duration",
+                exercises: [
+                    { name: "Mobilidade de Quadril", time: 300 },
+                    { name: "Mobilidade Torácica", time: 300 },
+                    { name: "Alongamento Posterior", time: 300 },
+                    { name: "Respiração Profunda", time: 300 }
+                ]
+            },
+            4: {
+                name: "Metabólico Total EMOM",
+                type: "emom",
+                rounds: 5,
+                exercises: [
+                    "12 Agachamentos",
+                    "10 Flexões",
+                    "12 Remadas",
+                    "30s Prancha"
+                ]
+            },
+            5: {
+                name: "Força + Metabólico",
+                type: "hybrid",
+                exercises: [
+                    { name: "Agachamento Lento (4s)", sets: 4, reps: 10 },
+                    { name: "Remada Unilateral", sets: 4, reps: 10 },
+                    { name: "Elevação Quadril Unil.", sets: 3, reps: 12 },
+                    { name: "Metabólico: Marcha Rápida", time: 30, type: "interval" },
+                    { name: "Metabólico: Polichinelo", time: 30, type: "interval", repeat: 5 }
+                ]
+            }
+        };
+
+        let currentDay = null;
+        let timer = null;
+        let timeLeft = 0;
+        let isPaused = true;
+        let state = "prepare";
+        let exerciseIndex = 0;
+        let workoutQueue = [];
+        let totalWorkoutSeconds = 0;
+        let elapsedSeconds = 0;
+
+        const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+        function beep(freq = 440, duration = 0.2, type = 'sine') {
+            try {
+                const osc = audioCtx.createOscillator();
+                const gain = audioCtx.createGain();
+                osc.type = type;
+                osc.frequency.setValueAtTime(freq, audioCtx.currentTime);
+                gain.gain.setValueAtTime(0.5, audioCtx.currentTime);
+                gain.gain.exponentialRampToValueAtTime(0.01, audioCtx.currentTime + duration);
+                osc.connect(gain);
+                gain.connect(audioCtx.destination);
+                osc.start();
+                osc.stop(audioCtx.currentTime + duration);
+            } catch (e) { }
+        }
+
+        function playTransitionSound(type) {
+            if (type === 'work') {
+                beep(880, 0.5, 'square');
+            } else if (type === 'rest') {
+                beep(440, 0.4, 'sine');
+                setTimeout(() => beep(440, 0.4, 'sine'), 200);
+            } else if (type === 'end') {
+                beep(523.25, 0.3); beep(659.25, 0.3); beep(783.99, 0.5);
+            }
+        }
+
+        const speech = window.speechSynthesis;
+        function announce(text) {
+            if (!text) return;
+            const utterance = new SpeechSynthesisUtterance(text);
+            utterance.lang = 'pt-BR';
+            utterance.rate = 1.1;
+            speech.speak(utterance);
+        }
+
+        function selectDay(day) {
+            currentDay = day;
+            const config = WORKOUTS[day];
+
+            document.querySelectorAll('.day-card').forEach((c, i) => {
+                c.classList.toggle('active', i + 1 === day);
+            });
+            document.getElementById('landing-screen').style.display = 'none';
+            document.getElementById('workout-view').style.display = 'block';
+
+            buildWorkoutQueue(config);
+            resetWorkoutState();
+            updateUI();
+        }
+
+        function buildWorkoutQueue(config) {
+            workoutQueue = [];
+            workoutQueue.push({ name: "Prepare-se", time: 10, state: "prepare" });
+
+            if (config.type === "circuit") {
+                for (let r = 1; r <= config.rounds; r++) {
+                    config.exercises.forEach((ex, idx) => {
+                        workoutQueue.push({
+                            name: ex,
+                            time: config.workTime,
+                            state: "work",
+                            round: r,
+                            exNum: idx + 1,
+                            totalEx: config.exercises.length
+                        });
+
+                        if (idx < config.exercises.length - 1) {
+                            workoutQueue.push({ name: "Descanso", time: config.restTime, state: "rest", round: r, exNum: idx + 1, totalEx: config.exercises.length });
+                        } else if (r < config.rounds) {
+                            workoutQueue.push({ name: "Descanso Entre Voltas", time: config.roundRest, state: "rest", round: r, exNum: idx + 1, totalEx: config.exercises.length });
+                        }
+                    });
+                }
+            } else if (config.type === "emom") {
+                for (let r = 1; r <= config.rounds; r++) {
+                    config.exercises.forEach((ex, idx) => {
+                        workoutQueue.push({
+                            name: ex,
+                            time: 60,
+                            state: "work",
+                            round: r,
+                            exNum: idx + 1,
+                            totalEx: config.exercises.length
+                        });
+                    });
+                }
+            } else if (config.type === "duration") {
+                config.exercises.forEach((ex, idx) => {
+                    workoutQueue.push({ name: ex.name, time: ex.time, state: "work", round: 1, exNum: idx + 1, totalEx: config.exercises.length });
+                });
+            } else if (config.type === "hybrid") {
+                config.exercises.forEach((ex, idx) => {
+                    if (ex.sets) {
+                        for (let s = 1; s <= ex.sets; s++) {
+                            workoutQueue.push({ name: `${ex.name} (Série ${s}/${ex.sets})`, time: 60, state: "work", round: 1, exNum: idx + 1, totalEx: config.exercises.length });
+                            workoutQueue.push({ name: "Descanso", time: 30, state: "rest", round: 1, exNum: idx + 1, totalEx: config.exercises.length });
+                        }
+                    } else if (ex.type === "interval") {
+                        const repeats = ex.repeat || 1;
+                        for (let i = 0; i < repeats; i++) {
+                            workoutQueue.push({ name: "Marcha Rápida", time: 30, state: "work", round: 1, exNum: idx + 1, totalEx: config.exercises.length });
+                            workoutQueue.push({ name: "Polichinelo", time: 30, state: "work", round: 1, exNum: idx + 1, totalEx: config.exercises.length });
+                        }
+                    }
+                });
+            }
+
+            totalWorkoutSeconds = workoutQueue.reduce((acc, item) => acc + item.time, 0);
+        }
+
+        function resetWorkoutState() {
+            if (timer) clearInterval(timer);
+            exerciseIndex = 0;
+            const first = workoutQueue[0];
+            timeLeft = first.time;
+            state = first.state;
+            isPaused = true;
+            elapsedSeconds = 0;
+
+            document.getElementById('btn-start').classList.remove('hidden');
+            document.getElementById('btn-pause').classList.add('hidden');
+        }
+
+        function startWorkout() {
+            if (audioCtx.state === 'suspended') audioCtx.resume();
+            isPaused = false;
+            document.getElementById('btn-start').classList.add('hidden');
+            document.getElementById('btn-pause').classList.remove('hidden');
+            document.getElementById('pause-text').innerText = "Pausar";
+            document.getElementById('pause-icon').innerText = "⏸";
+
+            const current = workoutQueue[exerciseIndex];
+            announce(current.name);
+            tick();
+        }
+
+        function togglePause() {
+            isPaused = !isPaused;
+            document.getElementById('pause-text').innerText = isPaused ? "Retomar" : "Pausar";
+            document.getElementById('pause-icon').innerText = isPaused ? "▶" : "⏸";
+            if (!isPaused) tick();
+        }
+
+        function resetWorkout() {
+            if (currentDay) selectDay(currentDay);
+        }
+
+        function tick() {
+            if (timer) clearInterval(timer);
+            timer = setInterval(() => {
+                if (isPaused) {
+                    clearInterval(timer);
+                    return;
+                }
+
+                timeLeft--;
+                elapsedSeconds++;
+
+                if (timeLeft <= 0) {
+                    nextStep();
+                } else {
+                    if (timeLeft <= 3) beep(600, 0.1);
+                    updateUI();
+                }
+            }, 1000);
+        }
+
+        function nextStep() {
+            // Update elapsed time by skipping remaining time of the exercise
+            if (timeLeft > 0) {
+                elapsedSeconds += timeLeft;
+            }
+
+            exerciseIndex++;
+            if (exerciseIndex >= workoutQueue.length) {
+                finishWorkout();
+                return;
+            }
+
+            const current = workoutQueue[exerciseIndex];
+            timeLeft = current.time;
+            state = current.state;
+
+            const next = workoutQueue[exerciseIndex + 1];
+            playTransitionSound(state);
+            announce(current.name);
+
+            updateUI();
+        }
+
+        function finishWorkout() {
+            if (timer) clearInterval(timer);
+            isPaused = true;
+            playTransitionSound('end');
+            announce("Treino concluído! Excelente trabalho.");
+            document.getElementById('current-ex-name').innerText = "CONCLUÍDO!";
+            document.getElementById('timer-text').innerText = "VENCER";
+            document.getElementById('status-badge').innerText = "VITÓRIA";
+            document.getElementById('status-badge').className = "status-badge status-work";
+            document.getElementById('progress-bar').style.width = '100%';
+        }
+
+        function updateUI() {
+            const current = workoutQueue[exerciseIndex] || { name: "Fim", time: 0, state: "work" };
+            const next = workoutQueue[exerciseIndex + 1];
+
+            document.getElementById('current-ex-name').innerText = current.name;
+            document.getElementById('next-ex-name').innerText = next ? `Próximo: ${next.name}` : "Último exercício!";
+
+            const mins = Math.floor(Math.max(0, timeLeft) / 60);
+            const secs = Math.max(0, timeLeft) % 60;
+            document.getElementById('timer-text').innerText = `${String(mins).padStart(2, '0')}:${String(secs).padStart(2, '0')}`;
+
+            const badge = document.getElementById('status-badge');
+            badge.innerText = state === 'work' ? 'EXECUTAR' : (state === 'rest' ? 'DESCANSAR' : 'PREPARAR');
+            badge.className = `status-badge status-${state}`;
+
+            const totalPercent = Math.min(100, (elapsedSeconds / totalWorkoutSeconds) * 100);
+            document.getElementById('progress-bar').style.width = `${totalPercent}%`;
+
+            document.getElementById('stat-round').innerText = `${current.round || 1} / ${WORKOUTS[currentDay]?.rounds || 1}`;
+            document.getElementById('stat-ex').innerText = `${current.exNum || 1} / ${current.totalEx || 1}`;
+
+            const remaining = Math.max(0, totalWorkoutSeconds - elapsedSeconds);
+            const rMins = Math.floor(remaining / 60);
+            const rSecs = remaining % 60;
+            document.getElementById('stat-total-time').innerText = `${String(rMins).padStart(2, '0')}:${String(rSecs).padStart(2, '0')}`;
+        }
+
+        // --- PWA Service Worker Registration ---
+        if ('serviceWorker' in navigator) {
+            window.addEventListener('load', () => {
+                navigator.serviceWorker.register('sw.js')
+                    .then(reg => console.log('SW Registered'))
+                    .catch(err => console.log('SW Registration Failed', err));
+            });
+        }
+    </script>
+</body>
+
+</html>
