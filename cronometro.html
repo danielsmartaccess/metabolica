@@ -198,11 +198,32 @@
             margin-bottom: 2rem;
         }
 
+        .exercise-image-container {
+            width: 100%;
+            height: 250px;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            margin: 1rem 0;
+            overflow: hidden;
+            border-radius: 1rem;
+            background: rgba(0, 0, 0, 0.2);
+            border: 1px solid var(--glass-border);
+        }
+
+        .exercise-image {
+            max-width: 100%;
+            max-height: 100%;
+            object-fit: contain;
+            filter: drop-shadow(0 0 10px rgba(0, 255, 136, 0.2));
+            transition: opacity 0.3s ease;
+        }
+
         .timer-display {
             font-size: 8rem;
             font-weight: 800;
             line-height: 1;
-            margin: 2rem 0;
+            margin: 1rem 0;
             font-variant-numeric: tabular-nums;
             text-shadow: 0 0 30px rgba(255, 255, 255, 0.1);
         }
@@ -322,6 +343,10 @@
 
         /* Responsive */
         @media (max-width: 600px) {
+            .exercise-image-container {
+                height: 180px;
+            }
+
             .timer-display {
                 font-size: 5rem;
             }
@@ -396,6 +421,10 @@
 
             <div class="current-exercise" id="current-ex-name">Selecionar Treino</div>
             <div class="next-exercise" id="next-ex-name">...</div>
+
+            <div class="exercise-image-container" id="ex-img-container" style="display:none;">
+                <img id="exercise-image" src="" alt="Exercício" class="exercise-image">
+            </div>
 
             <div class="timer-display" id="timer-text">00:00</div>
 
@@ -502,6 +531,25 @@
                 ]
             }
         };
+
+        function getExerciseImage(name) {
+            if (!name) return null;
+            const lower = name.toLowerCase();
+
+            if (lower.includes('agachamento') || lower.includes('squat')) return 'img/agachamento.png';
+            if (lower.includes('flexão') || lower.includes('flexões') || lower.includes('flexao') || lower.includes('push')) return 'img/flexao.png';
+            if (lower.includes('remada') || lower.includes('row')) return 'img/remada.png';
+
+            // Specific Planks
+            if (lower.includes('prancha') && lower.includes('lateral')) return 'img/prancha_lateral.png';
+            if (lower.includes('prancha') || lower.includes('plank')) return 'img/prancha.png'; // Fallback to standard plank
+
+            // New Workout 2 Images
+            if (lower.includes('desenvolvimento') || lower.includes('ombros') || lower.includes('press')) return 'img/desenvolvimento.png';
+            if (lower.includes('climber') || lower.includes('mountain')) return 'img/mountain_climber.png';
+
+            return null;
+        }
 
         let currentDay = null;
         let timer = null;
@@ -736,6 +784,18 @@
 
             document.getElementById('stat-round').innerText = `${current.round || 1} / ${WORKOUTS[currentDay]?.rounds || 1}`;
             document.getElementById('stat-ex').innerText = `${current.exNum || 1} / ${current.totalEx || 1}`;
+
+            // Image Handling
+            const imgPath = getExerciseImage(current.name);
+            const imgContainer = document.getElementById('ex-img-container');
+            const imgEl = document.getElementById('exercise-image');
+
+            if (imgPath && state === 'work') {
+                imgEl.src = imgPath;
+                imgContainer.style.display = 'flex';
+            } else {
+                imgContainer.style.display = 'none';
+            }
 
             const remaining = Math.max(0, totalWorkoutSeconds - elapsedSeconds);
             const rMins = Math.floor(remaining / 60);
