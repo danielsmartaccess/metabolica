@@ -526,8 +526,7 @@
                     { name: "Agachamento Lento (4s)", sets: 4, reps: 10 },
                     { name: "Remada Unilateral", sets: 4, reps: 10 },
                     { name: "Elevação Quadril Unil.", sets: 3, reps: 12 },
-                    { name: "Metabólico: Marcha Rápida", time: 30, type: "interval" },
-                    { name: "Metabólico: Polichinelo", time: 30, type: "interval", repeat: 5 }
+                    { name: "Metabólico: Burpee", time: 30, restTime: 30, type: "interval", repeat: 5 }
                 ]
             }
         };
@@ -538,6 +537,7 @@
 
             if (lower.includes('agachamento') || lower.includes('squat')) return 'img/agachamento.png';
             if (lower.includes('flexão') || lower.includes('flexões') || lower.includes('flexao') || lower.includes('push')) return 'img/flexao.png';
+            if (lower.includes('burpee')) return 'img/burpee.png';
             if (lower.includes('remada') || lower.includes('row')) return 'img/remada.png';
 
             // Specific Planks
@@ -662,8 +662,10 @@
                     } else if (ex.type === "interval") {
                         const repeats = ex.repeat || 1;
                         for (let i = 0; i < repeats; i++) {
-                            workoutQueue.push({ name: "Marcha Rápida", time: 30, state: "work", round: 1, exNum: idx + 1, totalEx: config.exercises.length });
-                            workoutQueue.push({ name: "Polichinelo", time: 30, state: "work", round: 1, exNum: idx + 1, totalEx: config.exercises.length });
+                            workoutQueue.push({ name: ex.name, time: ex.time, state: "work", round: 1, exNum: idx + 1, totalEx: config.exercises.length });
+                            if (ex.restTime) {
+                                workoutQueue.push({ name: "Descanso", time: ex.restTime, state: "rest", round: 1, exNum: idx + 1, totalEx: config.exercises.length });
+                            }
                         }
                     }
                 });
