@@ -519,7 +519,8 @@
                     "12 Agachamentos",
                     "10 Flexões",
                     "12 Remadas",
-                    "30s Prancha"
+                    "30s Prancha",
+                    "15 V-ups"
                 ]
             },
             5: {
@@ -557,8 +558,19 @@
 
 
         const EXERCISE_VIDEOS = {
-            "Burpee": "auBLPXO8Fww"
+            "Burpee": "auBLPXO8Fww",
+            "Goblet": "cReY8bUTiCM",
+            "Avanço": "DlhojghkaQ0",
+            "Prancha Frontal": "Og6zTet9Mdg",
+            "30s Prancha": "Og6zTet9Mdg",
+            "Flexão": "match_flexao",
+            "Desenvolvimento": "5yWaNOvgFCM",
+            "V-up": "Mk4zCq9b6hU"
         };
+
+        // Special mapping for Flexão to avoid conflict 
+        EXERCISE_VIDEOS["Flexão"] = "_l3ySVKYVJ8";
+        EXERCISE_VIDEOS["Flexões"] = "_l3ySVKYVJ8";
 
         function getExerciseVideoId(name) {
             if (!name) return null;
