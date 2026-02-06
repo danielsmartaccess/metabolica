@@ -468,6 +468,7 @@
     <script>
         // --- Workout Logic ---
         const WORKOUTS = {
+            // ... (previous workouts code is preserved, just inserting function after) ...
             1: {
                 name: "Inferior + Core",
                 type: "circuit",
@@ -480,7 +481,6 @@
                     "Avanço Alternado",
                     "Elevação de Quadril",
                     "Prancha Frontal",
-                    "Polichinelo ou Marcha"
                 ]
             },
             2: {
@@ -552,6 +552,25 @@
             return null;
         }
 
+
+        const EXERCISE_VIDEOS = {
+            "Burpee": "auBLPXO8Fww"
+        };
+
+        function getExerciseVideoId(name) {
+            if (!name) return null;
+            const lower = name.toLowerCase();
+
+            // Direct mapping check first (for exact matches or manual overrides)
+            for (const key in EXERCISE_VIDEOS) {
+                if (lower.includes(key.toLowerCase())) {
+                    return EXERCISE_VIDEOS[key];
+                }
+            }
+            return null;
+        }
+
+        // ... (rest of variable declarations) ...
         let currentDay = null;
         let timer = null;
         let timeLeft = 0;
@@ -562,6 +581,7 @@
         let totalWorkoutSeconds = 0;
         let elapsedSeconds = 0;
 
+        // ... (audio context and beep functions) ...
         const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
         function beep(freq = 440, duration = 0.2, type = 'sine') {
             try {
@@ -767,6 +787,8 @@
             document.getElementById('progress-bar').style.width = '100%';
         }
 
+        let lastVideoId = null;
+
         function updateUI() {
             const current = workoutQueue[exerciseIndex] || { name: "Fim", time: 0, state: "work" };
             const next = workoutQueue[exerciseIndex + 1];
@@ -788,19 +810,42 @@
             document.getElementById('stat-round').innerText = `${current.round || 1} / ${WORKOUTS[currentDay]?.rounds || 1}`;
             document.getElementById('stat-ex').innerText = `${current.exNum || 1} / ${current.totalEx || 1}`;
 
-            // Image Handling
-            const imgPath = getExerciseImage(current.name);
-            const imgContainer = document.getElementById('ex-img-container');
-            const imgEl = document.getElementById('exercise-image');
+            // Video Handling
+            const videoId = getExerciseVideoId(current.name);
+            const mediaContainer = document.getElementById('ex-img-container');
+            const videoFrame = document.getElementById('exercise-video-frame');
 
-            if (imgPath && state === 'work') {
-                imgEl.src = imgPath;
-                imgContainer.style.display = 'flex';
+            if (state === 'work' && videoId) {
+                mediaContainer.style.display = 'flex';
+                // Only update src if the video changed to prevent reloading
+                if (lastVideoId !== videoId) {
+                    videoFrame.src = `https://www.youtube.com/embed/${videoId}?autoplay=1&mute=1&controls=0&loop=1&playlist=${videoId}`;
+                    lastVideoId = videoId;
+                }
+                videoFrame.style.display = 'block';
+                // Hide static image if present
+                const imgEl = document.getElementById('exercise-image');
+                if (imgEl) imgEl.style.display = 'none';
+
+            } else if (state === 'work') {
+                // Fallback to image if no video
+                const imgPath = getExerciseImage(current.name);
+                const imgEl = document.getElementById('exercise-image');
+                if (imgPath) {
+                    mediaContainer.style.display = 'flex';
+                    imgEl.src = imgPath;
+                    imgEl.style.display = 'block';
+                    if (videoFrame) videoFrame.style.display = 'none';
+                    lastVideoId = null;
+                } else {
+                    mediaContainer.style.display = 'none';
+                }
             } else {
-                imgContainer.style.display = 'none';
+                mediaContainer.style.display = 'none';
             }
 
             const remaining = Math.max(0, totalWorkoutSeconds - elapsedSeconds);
+
             const rMins = Math.floor(remaining / 60);
             const rSecs = remaining % 60;
             document.getElementById('stat-total-time').innerText = `${String(rMins).padStart(2, '0')}:${String(rSecs).padStart(2, '0')}`;
