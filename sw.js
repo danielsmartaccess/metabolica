@@ -1,4 +1,4 @@
-const CACHE_NAME = 'metabolica-v1';
+const CACHE_NAME = 'metabolica-v2';
 const ASSETS = [
   'cronometro.html',
   'manifest.json',
