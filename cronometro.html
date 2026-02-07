@@ -219,6 +219,35 @@
             transition: opacity 0.3s ease;
         }
 
+        .exercise-image-container {
+            position: relative;
+            cursor: pointer;
+        }
+
+        .play-overlay {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            font-size: 4rem;
+            color: rgba(255, 255, 255, 0.9);
+            background: rgba(0, 0, 0, 0.5);
+            border-radius: 50%;
+            width: 80px;
+            height: 80px;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            pointer-events: none;
+            transition: transform 0.2s;
+            z-index: 10;
+        }
+
+        .exercise-image-container:hover .play-overlay {
+            transform: translate(-50%, -50%) scale(1.1);
+            background: rgba(0, 255, 136, 0.8);
+        }
+
         .timer-display {
             font-size: 8rem;
             font-weight: 800;
@@ -422,8 +451,10 @@
             <div class="current-exercise" id="current-ex-name">Selecionar Treino</div>
             <div class="next-exercise" id="next-ex-name">...</div>
 
-            <div class="exercise-image-container" id="ex-img-container" style="display:none;">
+            <div class="exercise-image-container" id="ex-img-container" style="display:none;"
+                onclick="toggleVideoPlayback()">
                 <img id="exercise-image" src="" alt="Exercício" class="exercise-image">
+                <div id="play-overlay" class="play-overlay" style="display:none;">▶</div>
                 <iframe id="exercise-video-frame" width="100%" height="100%" src="" frameborder="0"
                     allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
                     allowfullscreen style="display:none;"></iframe>
@@ -474,6 +505,7 @@
             // ... (previous workouts code is preserved, just inserting function after) ...
             1: {
                 name: "Inferior + Core",
+                mobility: [{ name: "Rotina Mobilidade Quadril", time: 120 }],
                 type: "circuit",
                 rounds: 4,
                 workTime: 40,
@@ -488,6 +520,7 @@
             },
             2: {
                 name: "Superior (Costas)",
+                mobility: [{ name: "Rotina Mobilidade Quadril", time: 120 }],
                 type: "circuit",
                 rounds: 4,
                 workTime: 40,
@@ -503,6 +536,7 @@
             },
             3: {
                 name: "Regenerativo Ativo",
+                mobility: [{ name: "Rotina Mobilidade Quadril", time: 120 }],
                 type: "duration",
                 exercises: [
                     { name: "Mobilidade de Quadril", time: 300 },
@@ -513,6 +547,7 @@
             },
             4: {
                 name: "Metabólico Total EMOM",
+                mobility: [{ name: "Rotina Mobilidade Quadril", time: 120 }],
                 type: "emom",
                 rounds: 5,
                 exercises: [
@@ -525,6 +560,7 @@
             },
             5: {
                 name: "Força + Metabólico",
+                mobility: [{ name: "Rotina Mobilidade Quadril", time: 120 }],
                 type: "hybrid",
                 exercises: [
                     { name: "Agachamento Lento (4s)", sets: 4, reps: 10 },
@@ -565,7 +601,9 @@
             "30s Prancha": "Og6zTet9Mdg",
             "Flexão": "match_flexao",
             "Desenvolvimento": "5yWaNOvgFCM",
-            "V-up": "Mk4zCq9b6hU"
+            "V-up": "Mk4zCq9b6hU",
+            "Rotina Mobilidade Quadril": "Zw-_HB9j7UM",
+            "Mobilidade de Quadril": "Zw-_HB9j7UM"
         };
 
         // Special mapping for Flexão to avoid conflict 
@@ -582,6 +620,9 @@
                     return EXERCISE_VIDEOS[key];
                 }
             }
+            // Fallbacks for mobility
+            if (lower.includes("mobilidade")) return "Zw-_HB9j7UM"; // Default mobility video
+
             return null;
         }
 
@@ -651,6 +692,19 @@
         function buildWorkoutQueue(config) {
             workoutQueue = [];
             workoutQueue.push({ name: "Prepare-se", time: 10, state: "prepare" });
+
+            // Initialize Mobility if present
+            if (config.mobility) {
+                config.mobility.forEach((mob, idx) => {
+                    workoutQueue.push({
+                        name: mob.name,
+                        time: mob.time,
+                        state: "prepare", // Using prepare state for blue color
+                        round: 0,
+                        video: getExerciseVideoId(mob.name) // Ensure we can grab video if needed differently
+                    });
+                });
+            }
 
             if (config.type === "circuit") {
                 for (let r = 1; r <= config.rounds; r++) {
@@ -803,6 +857,17 @@
         }
 
         let lastVideoId = null;
+        let isVideoActive = false; // Controls if we are showing the video or the thumbnail
+
+        function toggleVideoPlayback() {
+            const current = workoutQueue[exerciseIndex];
+            const videoId = getExerciseVideoId(current?.name);
+
+            if (videoId && !isVideoActive) {
+                isVideoActive = true;
+                updateUI();
+            }
+        }
 
         function updateUI() {
             const current = workoutQueue[exerciseIndex] || { name: "Fim", time: 0, state: "work" };
@@ -829,34 +894,58 @@
             const videoId = getExerciseVideoId(current.name);
             const mediaContainer = document.getElementById('ex-img-container');
             const videoFrame = document.getElementById('exercise-video-frame');
+            const imgEl = document.getElementById('exercise-image');
+            const playOverlay = document.getElementById('play-overlay');
 
-            if (state === 'work' && videoId) {
-                mediaContainer.style.display = 'flex';
-                // Only update src if the video changed to prevent reloading
+            // Ensure container is visible
+            mediaContainer.style.display = 'flex';
+
+            if (videoId) {
+                // Check if we switched exercises/videos
                 if (lastVideoId !== videoId) {
-                    videoFrame.src = `https://www.youtube.com/embed/${videoId}?autoplay=1&mute=1&controls=0&loop=1&playlist=${videoId}`;
                     lastVideoId = videoId;
+                    isVideoActive = false; // Reset to thumbnail mode for new video
+                    videoFrame.src = ""; // Stop previous video
                 }
-                videoFrame.style.display = 'block';
-                // Hide static image if present
-                const imgEl = document.getElementById('exercise-image');
-                if (imgEl) imgEl.style.display = 'none';
 
-            } else if (state === 'work') {
-                // Fallback to image if no video
-                const imgPath = getExerciseImage(current.name);
-                const imgEl = document.getElementById('exercise-image');
-                if (imgPath) {
-                    mediaContainer.style.display = 'flex';
-                    imgEl.src = imgPath;
-                    imgEl.style.display = 'block';
-                    if (videoFrame) videoFrame.style.display = 'none';
-                    lastVideoId = null;
+                if (isVideoActive) {
+                    // SHOW VIDEO
+                    if (videoFrame.style.display !== 'block') {
+                        videoFrame.src = `https://www.youtube-nocookie.com/embed/${videoId}?autoplay=1&mute=1&controls=1&playsinline=1&rel=0`;
+                        videoFrame.style.display = 'block';
+                        imgEl.style.display = 'none';
+                        playOverlay.style.display = 'none';
+                    }
                 } else {
-                    mediaContainer.style.display = 'none';
+                    // SHOW THUMBNAIL
+                    videoFrame.style.display = 'none';
+                    imgEl.style.display = 'block';
+                    playOverlay.style.display = 'flex';
+
+                    const thumbUrl = `https://img.youtube.com/vi/${videoId}/hqdefault.jpg`;
+                    if (imgEl.src !== thumbUrl) {
+                        imgEl.src = thumbUrl;
+                    }
                 }
+
             } else {
-                mediaContainer.style.display = 'none';
+                // No video for this step
+                if (lastVideoId !== null) {
+                    videoFrame.src = "";
+                    lastVideoId = null;
+                    isVideoActive = false;
+                }
+
+                videoFrame.style.display = 'none';
+                imgEl.style.display = 'block';
+                playOverlay.style.display = 'none';
+
+                const imgPath = getExerciseImage(current.name);
+                const newSrc = imgPath || 'icon.png';
+
+                if (imgEl.getAttribute('src') !== newSrc) {
+                    imgEl.src = newSrc;
+                }
             }
 
             const remaining = Math.max(0, totalWorkoutSeconds - elapsedSeconds);
