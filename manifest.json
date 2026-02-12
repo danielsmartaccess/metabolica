@@ -2,7 +2,7 @@
   "name": "Metabolica - Cronômetro Inteligente",
   "short_name": "Metabolica",
   "description": "Cronômetro de treino metabólico focado em longevidade e pico hormonal.",
-  "start_url": "cronometro.html",
+  "start_url": "index.html",
   "display": "standalone",
   "background_color": "#0a0a0c",
   "theme_color": "#00ff88",

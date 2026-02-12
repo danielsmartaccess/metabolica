@@ -1,6 +1,6 @@
 const CACHE_NAME = 'metabolica-v2';
 const ASSETS = [
-  'cronometro.html',
+  'index.html',
   'manifest.json',
   'bg.png',
   'icon.png'
